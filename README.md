@@ -60,6 +60,37 @@ Xem file [INTEGRATION_SUMMARY.md](./INTEGRATION_SUMMARY.md) để biết:
 - So sánh code cũ vs mới
 - Migration path
 
+## 🏗️ Build cho Production
+
+### Build Local
+```bash
+# Windows
+npm run tauri build
+
+# macOS (Apple Silicon)
+npm run tauri build -- --target aarch64-apple-darwin
+
+# macOS (Intel)
+npm run tauri build -- --target x86_64-apple-darwin
+
+# macOS (Universal - cả 2)
+npm run tauri build -- --target universal-apple-darwin
+```
+
+### Build với GitHub Actions
+```bash
+# Tạo tag và push
+git tag v1.0.0
+git push origin v1.0.0
+
+# Hoặc trigger manual từ GitHub Actions tab
+```
+
+Xem [MACOS_BUILD_GUIDE.md](./MACOS_BUILD_GUIDE.md) để biết:
+- Hướng dẫn build cho macOS
+- Setup code signing
+- Troubleshooting
+
 ## 🎯 Recommended IDE Setup
 
 - [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
