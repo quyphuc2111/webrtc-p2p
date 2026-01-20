@@ -1,0 +1,8 @@
+{
+  "name": "ClassView Pro",
+  "description": "Ứng dụng chia sẻ màn hình thời gian thực dành cho lớp học. Giáo viên phát sóng, học sinh theo dõi.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
