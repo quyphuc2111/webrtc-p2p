@@ -141,12 +141,35 @@ const StudentViewSocketIO: React.FC = () => {
       console.log(`Received track from ${targetUserId}:`, event.track.kind);
       if (event.streams && event.streams[0]) {
         console.log(`Setting remote stream from ${targetUserId}`);
-        setRemoteStream(event.streams[0]);
+        const stream = event.streams[0];
+        setRemoteStream(stream);
         setStatus('connected');
         setStatusMessage("Đang xem màn hình giáo viên");
-        if (videoRef.current) {
-          videoRef.current.srcObject = event.streams[0];
-        }
+        
+        // Use setTimeout to ensure video element is ready
+        setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            console.log('Attempting to play video...');
+            
+            // Force play the video
+            videoRef.current.play().then(() => {
+              console.log('✅ Video playing successfully!');
+            }).catch(err => {
+              console.error("❌ Error playing video:", err);
+              // If autoplay is blocked, try muted
+              if (videoRef.current) {
+                videoRef.current.muted = true;
+                setIsMuted(true);
+                videoRef.current.play().then(() => {
+                  console.log("✅ Video playing (muted due to autoplay policy)");
+                }).catch(e => {
+                  console.error("❌ Still cannot play:", e);
+                });
+              }
+            });
+          }
+        }, 100);
       }
     };
 
@@ -204,6 +227,24 @@ const StudentViewSocketIO: React.FC = () => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
       setIsMuted(videoRef.current.muted);
+    }
+  };
+
+  const forcePlayVideo = () => {
+    if (videoRef.current && remoteStream) {
+      console.log('Force playing video...');
+      videoRef.current.srcObject = remoteStream;
+      videoRef.current.play().then(() => {
+        console.log('✅ Video is now playing!');
+      }).catch(err => {
+        console.error('❌ Error playing video:', err);
+        // Try muted
+        videoRef.current!.muted = true;
+        setIsMuted(true);
+        videoRef.current!.play().then(() => {
+          console.log('✅ Video playing (muted)');
+        });
+      });
     }
   };
 
@@ -278,34 +319,57 @@ const StudentViewSocketIO: React.FC = () => {
           </div>
         )}
 
-        {/* Video Element */}
-        <div 
-          ref={containerRef}
-          className={`relative w-full h-full flex items-center justify-center transition-opacity duration-500 ${status === 'connected' && remoteStream ? 'opacity-100' : 'opacity-0 hidden'}`}
-        >
-          <video 
-            ref={videoRef}
-            className="w-full h-full object-contain max-h-screen"
-            autoPlay
-            playsInline
-          />
-          
-          {/* Floating Controls for Student */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-dark-900/80 backdrop-blur border border-white/10 px-4 py-2 rounded-full flex items-center space-x-4 opacity-0 hover:opacity-100 transition-opacity">
-            <button onClick={toggleMute} className="p-2 hover:bg-white/10 rounded-full text-white">
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-            </button>
-            <div className="h-4 w-px bg-white/20"></div>
-            <div className="flex items-center text-xs text-slate-300 font-mono">
-              <Signal className="w-3 h-3 text-emerald-500 mr-2" />
-              LIVE HD
+        {/* Video Element - Always render when connected, regardless of remoteStream state */}
+        {status === 'connected' ? (
+          <div 
+            ref={containerRef}
+            className="relative w-full h-full flex items-center justify-center"
+          >
+            <video 
+              ref={videoRef}
+              className="w-full h-full object-contain max-h-screen bg-black"
+              autoPlay
+              playsInline
+              muted={isMuted}
+              controls={false}
+              style={{ display: 'block' }}
+            />
+            
+            {/* Debug info */}
+            <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm px-3 py-2 rounded text-xs font-mono text-white border border-white/10 space-y-1">
+              <div>Status: {status}</div>
+              <div>Stream: {remoteStream ? 'Active' : 'None'}</div>
+              <div>Tracks: {remoteStream?.getTracks().length || 0}</div>
+              <div>Video: {remoteStream?.getVideoTracks().length || 0}</div>
+              <div>Audio: {remoteStream?.getAudioTracks().length || 0}</div>
+              <div>Paused: {videoRef.current?.paused ? 'Yes' : 'No'}</div>
+              <div>Ready: {videoRef.current?.readyState || 0}</div>
+              <div>Size: {videoRef.current?.videoWidth || 0}x{videoRef.current?.videoHeight || 0}</div>
+              <button 
+                onClick={forcePlayVideo}
+                className="mt-2 w-full px-2 py-1 bg-brand-600 hover:bg-brand-500 rounded text-white text-xs font-bold"
+              >
+                🔄 Force Play
+              </button>
             </div>
-            <div className="h-4 w-px bg-white/20"></div>
-            <button onClick={toggleFullScreen} className="p-2 hover:bg-white/10 rounded-full text-white">
-              <Maximize2 className="w-5 h-5" />
-            </button>
+            
+            {/* Floating Controls for Student */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-dark-900/80 backdrop-blur border border-white/10 px-4 py-2 rounded-full flex items-center space-x-4 opacity-0 hover:opacity-100 transition-opacity">
+              <button onClick={toggleMute} className="p-2 hover:bg-white/10 rounded-full text-white">
+                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </button>
+              <div className="h-4 w-px bg-white/20"></div>
+              <div className="flex items-center text-xs text-slate-300 font-mono">
+                <Signal className="w-3 h-3 text-emerald-500 mr-2" />
+                LIVE HD
+              </div>
+              <div className="h-4 w-px bg-white/20"></div>
+              <button onClick={toggleFullScreen} className="p-2 hover:bg-white/10 rounded-full text-white">
+                <Maximize2 className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );

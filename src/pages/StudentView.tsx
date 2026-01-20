@@ -74,11 +74,28 @@ const StudentView: React.FC = () => {
     call.on('stream', (remoteStream: MediaStream) => {
       console.log("Received teacher stream");
       setStatus('connected');
-      if (videoRef.current) {
-        videoRef.current.srcObject = remoteStream;
-        // Ensure playback
-        videoRef.current.play().catch(e => console.error("Auto-play blocked", e));
-      }
+      
+      // Use setTimeout to ensure video element is ready
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = remoteStream;
+          console.log('Attempting to play video...');
+          
+          // Force play
+          videoRef.current.play().then(() => {
+            console.log('✅ Video playing successfully!');
+          }).catch(err => {
+            console.error("❌ Auto-play blocked:", err);
+            // Try muted
+            if (videoRef.current) {
+              videoRef.current.muted = true;
+              videoRef.current.play().then(() => {
+                console.log('✅ Video playing (muted)');
+              }).catch(e => console.error("❌ Still cannot play:", e));
+            }
+          });
+        }
+      }, 100);
     });
 
     call.on('close', () => {
